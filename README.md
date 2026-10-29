@@ -1,71 +1,76 @@
 # Recipe API (TDD)
 
-This is a **Recipe API** built using **Test-Driven Development (TDD)**. The API allows users to manage recipes, ingredients, and tags, and is designed to be scalable, maintainable, and extensible.
+A Django project built test-first as the foundation for a recipe API. Today it contains an email-based custom user model, its Django admin, and the test suite that drove them. Recipes, ingredients, tags and API endpoints are **not implemented yet**; DRF is installed for that next step.
 
----
+## What exists
 
-## Features
+- `core.User`: custom user with email as the login field (normalized, unique), `name`, `is_active`, `is_staff`, and permissions via `PermissionsMixin`.
+- `UserManager.create_user` / `create_superuser`; a missing email raises `ValueError`.
+- Django admin for users (list, change, add pages), at `/admin/`.
+- 14 tests covering the model, manager, admin pages, and the settings helpers.
 
-- **User Authentication**: Secure user registration and login functionality.  
-- **Recipe Management**: Create, update, delete, and retrieve recipes.  
-- **Ingredient Management**: Add and manage ingredients for recipes.  
-- **Tagging System**: Add tags to categorize recipes.  
-- **TDD Approach**: Developed with a focus on test-driven development to ensure robust and reliable code.  
+## Stack
 
----
+Python 3.13, Django 5.2 LTS, Django REST Framework (installed, unused so far), PostgreSQL 17 via Docker (SQLite when no database is configured), gunicorn. Versions: [VERSIONS.md](./VERSIONS.md).
 
-## Technologies Used
+## Quickstart (Docker)
 
-- **Python**: Core programming language.  
-- **Django & Django REST Framework (DRF)**: For building the API.  
-- **Docker**: For containerization and easy development setup.  
+```bash
+git clone https://github.com/kneeraazon404/recipe-api-tdd.git
+cd recipe-api-tdd
+cp .env.example .env     # set DJANGO_SECRET_KEY and POSTGRES_PASSWORD
+docker compose up --build
+docker compose run --rm app python manage.py createsuperuser
+```
 
----
+Open http://localhost:8000/admin/.
 
-## Getting Started
+## Quickstart (local, uv)
 
-### Prerequisites
-- [Docker](https://www.docker.com/)
-- [Python 3.9+](https://www.python.org/)
+Requires [uv](https://docs.astral.sh/uv/). Without `DATABASE_URL` or `DB_HOST` the app uses SQLite.
 
-### Installation
+```bash
+export DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"
+export DJANGO_DEBUG=true
+uv sync
+cd app
+uv run python manage.py migrate
+uv run python manage.py runserver
+```
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/kneeraazon404/recipe-api-tdd.git
-   cd recipe-api-tdd
-   ```
+## Configuration
 
-2. Build the Docker containers:
-   ```bash
-   docker-compose build
-   ```
+| Variable | Default | Purpose |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | required | startup fails without it |
+| `DJANGO_DEBUG` | `false` | debug mode |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | comma-separated hosts |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | empty | comma-separated origins |
+| `DATABASE_URL` | none | any dj-database-url URL; takes priority |
+| `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | none | original variables; build a PostgreSQL URL (used by docker-compose) |
 
-3. Run the containers:
-   ```bash
-   docker-compose up
-   ```
+When `DJANGO_DEBUG=false` the app also enables HTTPS redirect, secure cookies and HSTS (`DJANGO_SECURE_SSL_REDIRECT`, `DJANGO_HSTS_SECONDS`).
 
-4. Run the tests to ensure everything is working:
-   ```bash
-   docker-compose run app sh -c "python manage.py test"
-   ```
+## Testing
 
----
+```bash
+uv run pytest -q
+uv run ruff check . && uv run ruff format --check .
+```
 
-## Usage
+Tests run against in-memory SQLite (`app/app/settings_test.py`). CI: `.github/workflows/ci.yml` (replaces the old Travis config).
 
-- Access the API locally at `http://localhost:8000/api/`.  
-- Documentation for endpoints can be found [here](#). *(Add link to API docs if available.)*  
+## Project structure
 
----
-
-## Contributing
-
-Contributions are welcome! Please feel free to open issues or submit pull requests.
-
----
+```
+app/
+  app/        settings, urls, wsgi/asgi, settings_test.py
+  core/       custom User model, admin, migrations, tests/
+  manage.py
+Dockerfile, docker-compose.yml   production-style image (gunicorn) and local Postgres stack
+pyproject.toml, uv.lock          dependencies (requirements.txt is exported)
+```
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](https://github.com/kneeraazon404/recipe-api-tdd/blob/main/LICENSE) file for details.
+MIT. See [LICENSE](LICENSE).

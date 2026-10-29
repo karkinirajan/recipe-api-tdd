@@ -1,21 +1,23 @@
-FROM python:3.7-alpine
+FROM python:3.13-slim
 
-# MAINTAINER Nirajan Karki
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
 
-COPY ./requirements.txt /requirements.txt
-RUN apk add --update --no-cache postgresql-client
-RUN apk add --update --no-cache --virtual  .temp-build-deps \
-    gcc libc-dev linux-headers postgresql-dev
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /usr/local/bin/uv
 
-RUN apk add postgresql-dev
+WORKDIR /srv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-RUN pip install -r requirements.txt
-RUN apk del .temp-build-deps
+ENV PATH="/srv/.venv/bin:$PATH"
 
-RUN mkdir /app
 WORKDIR /app
 COPY ./app /app
 
-RUN adduser -D user
+RUN useradd --create-home user
 USER user
+
+EXPOSE 8000
+CMD ["gunicorn", "app.wsgi:application", "--bind", "0.0.0.0:8000"]

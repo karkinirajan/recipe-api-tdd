@@ -1,0 +1,30 @@
+[project]
+name = "recipe-api-tdd"
+version = "1.0.0"
+description = "Django project with an email-based custom user model and admin, built test-first (foundation for a recipe API)."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { file = "LICENSE" }
+dependencies = [
+    "django>=5.2,<5.3",
+    "djangorestframework>=3.16",
+    "dj-database-url>=3.1,<4",
+    "psycopg[binary]>=3.3,<4",
+    "gunicorn>=26,<27",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-django>=4.9", "ruff>=0.8"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "app.settings_test"
+pythonpath = ["app"]
+python_files = ["test_*.py"]
+testpaths = ["app"]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["*/migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "DJ"]
